@@ -4,17 +4,18 @@ import './App.css'
 // determine whether blackjack
 // if yes, then give
 
-function calculateTotal(cards){
+function calculateTotal(cards: {rank: string, suit: string}[]){
     let total = 0;
     let numberOfA = 0;
     for (let i = 0; i < cards.length; i++){
-        if (cards.rank == "A"){
+        const card = cards[i];
+        if (card.rank == "A"){
             total += 11;
             numberOfA++;
-        } else if (cards.rank == "J" || cards.rank == "Q" || cards.rank == "K"){
+        } else if (card.rank == "J" || card.rank == "Q" || card.rank == "K"){
             total += 10;
         } else {
-            total += parseInt(cards.rank);
+            total += parseInt(card.rank);
         }
     }
     while (numberOfA > 0 && total > 21) {
@@ -48,10 +49,9 @@ function weightedChoice(items, weights) {
 
 function card_shuffle(n, deck){
     const total = 52
-    const probs = {}
+    const probs: {[key: number]: number} = {}
     for (let i = 0; i<total+1; i++){
-        const prob = comb(total, i) * 0.5**total
-        probs[i] = prob
+        probs[i] = comb(total, i) * 0.5**total
     }
 
     for (let i = 0; i < n; i++){
@@ -79,8 +79,7 @@ function card_shuffle(n, deck){
 
 function App() {
     const [message, setMessage] = useState('');
-
-    const [count, setCount] = useState(0)
+    const [messageType, setMessageType] = useState('');
 
     const [money, setMoney] = useState(1000);
     const [bet, setBet] = useState(100);
@@ -92,17 +91,20 @@ function App() {
 
     const [userCards, setUserCards] = useState<{rank: string, suit: string}[]>([]);
 
-    const [dealerCards, setDealerCards] = useState([]);
+    const [dealerCards, setDealerCards] = useState<{rank: string, suit: string}[]>([]);
 
 
     function startGame(){
+        setMessage("");
         if (bet <= 0){
             setMessage("You have to bet a positive integer.");
+            setMessageType("failure");
             return;
         }
 
         if (bet > money){
             setMessage("You cannot bet more than what you have..");
+            setMessage("failure");
             return;
         }
         setMoney(money - bet);
@@ -129,7 +131,7 @@ function App() {
         for (let i = 0; i < 2; i++){
             const card = newDeck[0];
             newDealerCards.push(card);
-            newDeck.pop(0);
+            newDeck.splice(0, 1);
         }
 
         setUserCards(newUserCards);
@@ -141,29 +143,125 @@ function App() {
             setMoney(bet * 5/2);
             setGameEnded(true);
             setMessage("You got blackjack!");
+            setMessageType("success");
+            setGameInProgress(false);
             setNeedToSeeDealerCards(false);
         }
+    }
+
+    function hit(){
+        setMessage("");
+        const newDeck = [...deck];
+        const newUserCards = [...userCards];
+        const card = newDeck[0];
+        newUserCards.push(card);
+        newDeck.splice(0, 1);
+        setDeck(newDeck);
+        setUserCards(newUserCards);
+        const total = calculateTotal(newUserCards);
+        if (total < 21) return;
+        if (total > 21){
+            setMessage("Bust!");
+            setMessageType("failure");
+            setGameEnded(true);
+            setNeedToSeeDealerCards(false);
+            setGameInProgress(false);
+            return;
+        }
+        stand();
+    }
+
+    function stand(){
+        setMessage("");
+        const newDeck = [...deck];
+        const newDealerCards = [...dealerCards];
+        let dealerTotal = calculateTotal(newDealerCards);
+        while (dealerTotal < 17){
+            const card = newDeck[0];
+            newDealerCards.push(card);
+            newDeck.splice(0, 1);
+            dealerTotal = calculateTotal(newDealerCards);
+        }
+
+        setDealerCards(newDealerCards);
+        setDeck(newDeck);
+
+        if (dealerTotal > 21){
+            setMessage("You won because the dealer got bust!");
+            setMessageType("success");
+            setMoney(money + bet * 2);
+        }
+
+        const userTotal = calculateTotal(userCards);
+
+        // compare values
+        if (userTotal > dealerTotal){
+            setMessage("You won because you have more than the dealer!");
+            setMessageType("success");
+            setMoney(money + bet * 2);
+        } else if (dealerTotal > userTotal){
+            setMessage("You lost because the dealer has higher!");
+            setMessageType("failure");
+        } else {
+            setMessage("It's a draw!")
+            setMessageType("idk");
+            setMoney(money + bet);
+        }
+
+        setGameEnded(true);
+        setNeedToSeeDealerCards(true);
+        setGameInProgress(false);
+
+        // make the cards show if that var is true (up)
     }
 
 
     return (
         <>
-            <p className="text-red-300">{message}</p>
+            {messageType == "success" &&
+                <p className={"text-green-400"}>{message}</p>
+            }
+            {messageType == "failure" &&
+                <p className={"text-red-400"}>{message}</p>
+            }
+            {messageType == "idk" &&
+                <p className={"text-amber-400"}>{message}</p>
+            }
             <h1>Blackjack</h1>
             <p>Money: {money}</p>
             {gameInProgress ?
                 <div>
-                    <p>Hi</p>
                     <p className="text-red-300">Your cards are:</p>
-                    <div className="flex flex-row">
+                    <div className="flex flex-row gap-2">
                         {userCards.map((card, i) =>
-                            <div className={"h-24 w-12 bg-blue-200"}>{card.rank}{card.suit}</div>
+                            <div key={i} className={"h-24 w-16 bg-blue-200 text-black"}>{card.rank}{card.suit}</div>
                         )}
+                    </div>
+                    <div className="flex flex-row gap-2">
+                        <button onClick={hit}>Hit</button>
+                        <button onClick={stand}>Stand</button>
                     </div>
                 </div>
             :   <div>
                     {gameEnded &&
-                        <p></p>
+                        <>
+                            <p>Your cards were:</p>
+                            <div className="flex flex-row gap-2">
+                                {userCards.map((card, i) =>
+                                    <div key={i} className={"h-24 w-16 bg-blue-200"}>{card.rank}{card.suit}</div>
+                                )}
+                            </div>
+                            {needToSeeDealerCards &&
+                                <>
+                                    <p>Dealer's cards were:</p>
+                                    <div className="flex flex-row gap-2">
+                                        {dealerCards.map((card, i) =>
+                                            <div key={i} className={"h-24 w-16 bg-green-200"}>{card.rank}{card.suit}</div>
+                                        )}
+                                    </div>
+                                </>
+                            }
+                        </>
                     }
                     <p>Bet:</p>
                     <input type="number" value={bet} onChange={e => setBet(parseInt(e.target.value))}></input>
