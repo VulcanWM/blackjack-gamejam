@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import './App.css'
 
 function calculateTotal(cards: {rank: string, suit: string}[]){
@@ -76,11 +76,13 @@ function card_shuffle(n: number, deck: {rank: string, suit: string}[]){
 
 function App() {
     // add tokens to bet
-    // add an instruction page
-    // add time limit
     // work on ui
     // submit
-    const [currentLevel, setCurrentLevel] = useState(6);
+
+    const [seeingInstructions, setSeeingInstructions] = useState<boolean>(true);
+    const [seconds, setSeconds] = useState<number>(60);
+
+    const [currentLevel, setCurrentLevel] = useState(1);
     const [message, setMessage] = useState('');
     const [messageType, setMessageType] = useState('');
 
@@ -96,8 +98,15 @@ function App() {
 
     const [dealerCards, setDealerCards] = useState<{rank: string, suit: string}[]>([]);
 
-    console.log(typeof currentLevel);
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (!seeingInstructions) {
+                setSeconds(prev => prev - 1);
+            }
+        }, 1000);
 
+        return () => clearInterval(interval);
+    }, [seeingInstructions]);
 
     function startGame(){
         setMessage("");
@@ -112,7 +121,7 @@ function App() {
             setMessageType("failure");
             return;
         }
-        setMoney(money - bet);
+        setMoney(money => money - bet);
         setGameInProgress(true);
         setGameEnded(false);
         let newDeck = [];
@@ -151,7 +160,7 @@ function App() {
             setMessageType("success");
             setGameInProgress(false);
             setNeedToSeeDealerCards(false);
-            setCurrentLevel(currentLevel + 1);
+            setCurrentLevel(currentLevel => currentLevel + 1);
         }
     }
 
@@ -196,11 +205,11 @@ function App() {
         if (dealerTotal > 21){
             setMessage("You won because the dealer got bust!");
             setMessageType("success");
-            setMoney(money + bet * 2);
+            setMoney(money => money + bet * 2);
             setGameEnded(true);
             setNeedToSeeDealerCards(true);
             setGameInProgress(false);
-            setCurrentLevel(currentLevel + 1);
+            setCurrentLevel(currentLevel => currentLevel + 1);
             return;
         }
 
@@ -210,8 +219,8 @@ function App() {
         if (userTotal > dealerTotal){
             setMessage("You won because you have more than the dealer!");
             setMessageType("success");
-            setCurrentLevel(currentLevel + 1);
-            setMoney(money + bet * 2);
+            setCurrentLevel(currentLevel => currentLevel + 1);
+            setMoney(money => money + bet * 2);
         } else if (dealerTotal > userTotal){
             setMessage("You lost because the dealer has higher!");
             setMessageType("failure");
@@ -219,7 +228,7 @@ function App() {
         } else {
             setMessage("It's a draw!")
             setMessageType("idk");
-            setMoney(money + bet);
+            setMoney(money => money + bet);
         }
 
         setGameEnded(true);
@@ -230,64 +239,106 @@ function App() {
 
     return (
         <>
-            {currentLevel == 6 ?
-                <div className={"h-screen bg-cover bg-no-repeat w-screen bg-[url(/win.jpeg)]"}>
-                    <p className={"text-green-800 text-9xl"}>You won!</p>
-                    <p className={"text-red-500 font-extrabold text-4xl"}>Don't gamble in real life</p>
+            {((money <= 0 && !gameInProgress) || seconds <= 0) ?
+                <div className={"bg-[url(/1bg.jpeg)] h-screen bg-cover bg-no-repeat w-screen"}>
+                    <h1 className={"text-9xl font-extrabold"}>YOU DIED!!!</h1>
+                    <p>{money <= 0 ? "You lost all your money" : "You ran out of time."}</p>
                 </div>
-                :
-                <div className={`${currentLevel == 1 && "bg-[url(/1bg.jpeg)]"} ${currentLevel == 2 && "bg-[url(/2bg.jpeg)]"} ${currentLevel == 3 && "bg-[url(/3bg.jpeg)]"} ${currentLevel == 4 && "bg-[url(/4bg.jpeg)]"} ${currentLevel == 5 && "bg-[url(/5bg.jpeg)]"} h-screen bg-cover bg-no-repeat w-screen`}>
-                    <h1>Blackjack</h1>
-                    <p>Money: {money}</p>
-                    {messageType == "success" &&
-                        <p className={"text-green-400"}>{message}</p>
-                    }
-                    {messageType == "failure" &&
-                        <p className={"text-red-400"}>{message}</p>
-                    }
-                    {messageType == "idk" &&
-                        <p className={"text-amber-400"}>{message}</p>
-                    }
-                    {gameInProgress ?
-                        <div>
-                            <p>Your cards are:</p>
-                            <div className="flex flex-row gap-2">
-                                {userCards.map((card, i) =>
-                                    <div key={i} className={"h-24 w-16 bg-blue-200 text-black"}>{card.rank}{card.suit}</div>
-                                )}
-                            </div>
-                            <div className="flex flex-row gap-2">
-                                <button onClick={hit}>Hit</button>
-                                <button onClick={stand}>Stand</button>
-                            </div>
+            :
+                <>
+                    {seeingInstructions ?
+                        <div className={"bg-[url(/1bg.jpeg)] h-screen bg-cover bg-no-repeat w-screen"}>
+                            <h1 className={"text-7xl font-extrabold"}>Blackjack (Under the sea)</h1>
+                            <h3 className={"text-2xl font-bold"}>How to win</h3>
+                            <ul>
+                                <li>You start with 1000 tokens</li>
+                                <li>Choose how much you'd like to bet</li>
+                                <li>You are on a timer, escape the sea by completing all 5 levels before you drown</li>
+                                <li>Every time you win a round you go up a level</li>
+                                <li>If you lose the round, you go straight back to the first level</li>
+                                <li>If you run out of time, instant death straight to level one</li>
+                            </ul>
+                            <h3 className={"text-2xl font-bold"}>How to play each round</h3>
+                            <ul>
+                                <li><span className={"font-bold"}>Aim of each round</span>: Try get a higher score than the dealer, but remain under 21</li>
+                                <li>You initially get dealt 2 cards, and you can see the dealer's first card</li>
+                                <li>You can choose either to hit, meaning get another card, or stand, meaning your current total is the total which the dealer will try to beat</li>
+                                <li>You can hit as many times as you like, but if your score goes above 21, its a BUST, and you lose the money you bet</li>
+                                <li>If your total is higher than the dealer, you win, get money, and go up a level.</li>
+                                <li>5 wins = Game won. If you lose at any point, instant death straight to level 1. If you run out of money, instant death straight to level one.</li>
+                            </ul>
+                            <button onClick={() => (setSeeingInstructions(false))}>Start Game</button>
                         </div>
-                        :   <div>
-                            {gameEnded &&
-                                <>
-                                    <p>Your cards were:</p>
-                                    <div className="flex flex-row gap-2">
-                                        {userCards.map((card, i) =>
-                                            <div key={i} className={"h-24 w-16 bg-blue-200 text-black"}>{card.rank}{card.suit}</div>
-                                        )}
-                                    </div>
-                                    {needToSeeDealerCards &&
-                                        <>
-                                            <p>Dealer's cards were:</p>
+                        :
+                        <>
+                            {currentLevel == 6 ?
+                                <div className={"h-screen bg-cover bg-no-repeat w-screen bg-[url(/win.jpeg)]"}>
+                                    <p className={"text-green-800 text-9xl"}>You won!</p>
+                                    <p className={"text-red-500 font-extrabold text-4xl"}>Don't gamble in real life</p>
+                                </div>
+                                :
+                                <div className={`${currentLevel == 1 && "bg-[url(/1bg.jpeg)]"} ${currentLevel == 2 && "bg-[url(/2bg.jpeg)]"} ${currentLevel == 3 && "bg-[url(/3bg.jpeg)]"} ${currentLevel == 4 && "bg-[url(/4bg.jpeg)]"} ${currentLevel == 5 && "bg-[url(/5bg.jpeg)]"} h-screen bg-cover bg-no-repeat w-screen`}>
+                                    <h1 className={"font-7xl font-bold"}>Blackjack</h1>
+                                    <p>Seconds remaining: {seconds}</p>
+                                    <p>Level: {currentLevel}</p>
+                                    <p>Money: {money}</p>
+                                    {messageType == "success" &&
+                                        <p className={"text-green-400"}>{message}</p>
+                                    }
+                                    {messageType == "failure" &&
+                                        <p className={"text-red-400"}>{message}</p>
+                                    }
+                                    {messageType == "idk" &&
+                                        <p className={"text-amber-400"}>{message}</p>
+                                    }
+                                    {gameInProgress ?
+                                        <div>
+                                            <p>Your cards are:</p>
                                             <div className="flex flex-row gap-2">
-                                                {dealerCards.map((card, i) =>
-                                                    <div key={i} className={"h-24 w-16 bg-green-200 text-black"}>{card.rank}{card.suit}</div>
+                                                {userCards.map((card, i) =>
+                                                    <div key={i} className={"h-24 w-16 bg-blue-200 text-black"}>{card.rank}{card.suit}</div>
                                                 )}
                                             </div>
-                                        </>
+                                            <p>Dealer's first card is</p>
+                                            <div className="flex flex-row gap-2">
+                                                <div className={"h-24 w-16 bg-green-200 text-black"}>{dealerCards[0].rank}{dealerCards[0].suit}</div>
+                                            </div>
+                                            <div className="flex flex-row gap-2">
+                                                <button onClick={hit}>Hit</button>
+                                                <button onClick={stand}>Stand</button>
+                                            </div>
+                                        </div>
+                                        :   <div>
+                                            {gameEnded &&
+                                                <>
+                                                    <p>Your cards were:</p>
+                                                    <div className="flex flex-row gap-2">
+                                                        {userCards.map((card, i) =>
+                                                            <div key={i} className={"h-24 w-16 bg-blue-200 text-black"}>{card.rank}{card.suit}</div>
+                                                        )}
+                                                    </div>
+                                                    {needToSeeDealerCards &&
+                                                        <>
+                                                            <p>Dealer's cards were:</p>
+                                                            <div className="flex flex-row gap-2">
+                                                                {dealerCards.map((card, i) =>
+                                                                    <div key={i} className={"h-24 w-16 bg-green-200 text-black"}>{card.rank}{card.suit}</div>
+                                                                )}
+                                                            </div>
+                                                        </>
+                                                    }
+                                                </>
+                                            }
+                                            <p>Bet:</p>
+                                            <input type="number" value={bet} onChange={e => setBet(parseInt(e.target.value))}></input>
+                                            <button onClick={startGame}>Bet</button>
+                                        </div>
                                     }
-                                </>
+                                </div>
                             }
-                            <p>Bet:</p>
-                            <input type="number" value={bet} onChange={e => setBet(parseInt(e.target.value))}></input>
-                            <button onClick={startGame}>Start Game</button>
-                        </div>
+                        </>
                     }
-                </div>
+                </>
             }
         </>
     )
