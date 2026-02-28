@@ -1,9 +1,6 @@
 import { useState } from 'react'
 import './App.css'
 
-// determine whether blackjack
-// if yes, then give
-
 function calculateTotal(cards: {rank: string, suit: string}[]){
     let total = 0;
     let numberOfA = 0;
@@ -78,6 +75,12 @@ function card_shuffle(n: number, deck: {rank: string, suit: string}[]){
 
 
 function App() {
+    // add tokens to bet
+    // add an instruction page
+    // add time limit
+    // work on ui
+    // submit
+    const [currentLevel, setCurrentLevel] = useState(6);
     const [message, setMessage] = useState('');
     const [messageType, setMessageType] = useState('');
 
@@ -93,6 +96,8 @@ function App() {
 
     const [dealerCards, setDealerCards] = useState<{rank: string, suit: string}[]>([]);
 
+    console.log(typeof currentLevel);
+
 
     function startGame(){
         setMessage("");
@@ -104,7 +109,7 @@ function App() {
 
         if (bet > money){
             setMessage("You cannot bet more than what you have..");
-            setMessage("failure");
+            setMessageType("failure");
             return;
         }
         setMoney(money - bet);
@@ -146,6 +151,7 @@ function App() {
             setMessageType("success");
             setGameInProgress(false);
             setNeedToSeeDealerCards(false);
+            setCurrentLevel(currentLevel + 1);
         }
     }
 
@@ -166,6 +172,7 @@ function App() {
             setGameEnded(true);
             setNeedToSeeDealerCards(false);
             setGameInProgress(false);
+            setCurrentLevel(1);
             return;
         }
         stand();
@@ -190,6 +197,11 @@ function App() {
             setMessage("You won because the dealer got bust!");
             setMessageType("success");
             setMoney(money + bet * 2);
+            setGameEnded(true);
+            setNeedToSeeDealerCards(true);
+            setGameInProgress(false);
+            setCurrentLevel(currentLevel + 1);
+            return;
         }
 
         const userTotal = calculateTotal(userCards);
@@ -198,10 +210,12 @@ function App() {
         if (userTotal > dealerTotal){
             setMessage("You won because you have more than the dealer!");
             setMessageType("success");
+            setCurrentLevel(currentLevel + 1);
             setMoney(money + bet * 2);
         } else if (dealerTotal > userTotal){
             setMessage("You lost because the dealer has higher!");
             setMessageType("failure");
+            setCurrentLevel(1);
         } else {
             setMessage("It's a draw!")
             setMessageType("idk");
@@ -211,61 +225,68 @@ function App() {
         setGameEnded(true);
         setNeedToSeeDealerCards(true);
         setGameInProgress(false);
-
-        // make the cards show if that var is true (up)
     }
 
 
     return (
         <>
-            {messageType == "success" &&
-                <p className={"text-green-400"}>{message}</p>
-            }
-            {messageType == "failure" &&
-                <p className={"text-red-400"}>{message}</p>
-            }
-            {messageType == "idk" &&
-                <p className={"text-amber-400"}>{message}</p>
-            }
-            <h1>Blackjack</h1>
-            <p>Money: {money}</p>
-            {gameInProgress ?
-                <div>
-                    <p className="text-red-300">Your cards are:</p>
-                    <div className="flex flex-row gap-2">
-                        {userCards.map((card, i) =>
-                            <div key={i} className={"h-24 w-16 bg-blue-200 text-black"}>{card.rank}{card.suit}</div>
-                        )}
-                    </div>
-                    <div className="flex flex-row gap-2">
-                        <button onClick={hit}>Hit</button>
-                        <button onClick={stand}>Stand</button>
-                    </div>
+            {currentLevel == 6 ?
+                <div className={"h-screen bg-cover bg-no-repeat w-screen bg-[url(/win.jpeg)]"}>
+                    <p className={"text-green-800 text-9xl"}>You won!</p>
+                    <p className={"text-red-500 font-extrabold text-4xl"}>Don't gamble in real life</p>
                 </div>
-            :   <div>
-                    {gameEnded &&
-                        <>
-                            <p>Your cards were:</p>
+                :
+                <div className={`${currentLevel == 1 && "bg-[url(/1bg.jpeg)]"} ${currentLevel == 2 && "bg-[url(/2bg.jpeg)]"} ${currentLevel == 3 && "bg-[url(/3bg.jpeg)]"} ${currentLevel == 4 && "bg-[url(/4bg.jpeg)]"} ${currentLevel == 5 && "bg-[url(/5bg.jpeg)]"} h-screen bg-cover bg-no-repeat w-screen`}>
+                    <h1>Blackjack</h1>
+                    <p>Money: {money}</p>
+                    {messageType == "success" &&
+                        <p className={"text-green-400"}>{message}</p>
+                    }
+                    {messageType == "failure" &&
+                        <p className={"text-red-400"}>{message}</p>
+                    }
+                    {messageType == "idk" &&
+                        <p className={"text-amber-400"}>{message}</p>
+                    }
+                    {gameInProgress ?
+                        <div>
+                            <p>Your cards are:</p>
                             <div className="flex flex-row gap-2">
                                 {userCards.map((card, i) =>
-                                    <div key={i} className={"h-24 w-16 bg-blue-200"}>{card.rank}{card.suit}</div>
+                                    <div key={i} className={"h-24 w-16 bg-blue-200 text-black"}>{card.rank}{card.suit}</div>
                                 )}
                             </div>
-                            {needToSeeDealerCards &&
+                            <div className="flex flex-row gap-2">
+                                <button onClick={hit}>Hit</button>
+                                <button onClick={stand}>Stand</button>
+                            </div>
+                        </div>
+                        :   <div>
+                            {gameEnded &&
                                 <>
-                                    <p>Dealer's cards were:</p>
+                                    <p>Your cards were:</p>
                                     <div className="flex flex-row gap-2">
-                                        {dealerCards.map((card, i) =>
-                                            <div key={i} className={"h-24 w-16 bg-green-200"}>{card.rank}{card.suit}</div>
+                                        {userCards.map((card, i) =>
+                                            <div key={i} className={"h-24 w-16 bg-blue-200 text-black"}>{card.rank}{card.suit}</div>
                                         )}
                                     </div>
+                                    {needToSeeDealerCards &&
+                                        <>
+                                            <p>Dealer's cards were:</p>
+                                            <div className="flex flex-row gap-2">
+                                                {dealerCards.map((card, i) =>
+                                                    <div key={i} className={"h-24 w-16 bg-green-200 text-black"}>{card.rank}{card.suit}</div>
+                                                )}
+                                            </div>
+                                        </>
+                                    }
                                 </>
                             }
-                        </>
+                            <p>Bet:</p>
+                            <input type="number" value={bet} onChange={e => setBet(parseInt(e.target.value))}></input>
+                            <button onClick={startGame}>Start Game</button>
+                        </div>
                     }
-                    <p>Bet:</p>
-                    <input type="number" value={bet} onChange={e => setBet(parseInt(e.target.value))}></input>
-                    <button onClick={startGame}>Start Game</button>
                 </div>
             }
         </>
