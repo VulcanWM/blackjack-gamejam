@@ -27,7 +27,7 @@ function calculateTotal(cards: {rank: string, suit: string}[]){
 }
 
 
-function comb(n, k) {
+function comb(n: number, k: number) {
     if (k > n) return 0;
     if (k === 0 || k === n) return 1;
     let res = 1;
@@ -37,7 +37,7 @@ function comb(n, k) {
     return res;
 }
 
-function weightedChoice(items, weights) {
+function weightedChoice(items: string[], weights: number[]) {
     const total = weights.reduce((a, b) => a + b, 0);
     let r = Math.random() * total;
 
@@ -47,7 +47,7 @@ function weightedChoice(items, weights) {
     }
 }
 
-function card_shuffle(n, deck){
+function card_shuffle(n: number, deck: {rank: string, suit: string}[]){
     const total = 52
     const probs: {[key: number]: number} = {}
     for (let i = 0; i<total+1; i++){
@@ -60,7 +60,7 @@ function card_shuffle(n, deck){
         const leftArr = deck.slice(0, left)
         const rightArr = deck.slice(left)
 
-        const newDeck = []
+        const newDeck: {rank: string, suit: string}[]  = []
         for (let j = 0; j < total; j++){
             const takeLeft = Math.random() < left / (left + right);
             if (takeLeft) {
